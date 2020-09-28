@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
+
 import argparse, logging, math, os
 import numpy as np
 import shutil
 from ctypes import *
-import mesh_io
+#import mesh_io
+import meshio #dependency for easy reading of vtu files
 import json
 import precice
 
@@ -40,12 +43,19 @@ class Mesh:
 		def __str__(self):
 			return "Mesh with {} Points and {} Cells ({} Cell Types)".format(len(self.points), len(self.cells), len(self.cell_types))
 
-
+class DumuxMesh:
+	"""
+	"""
+	def __init__(self, points = None ):
+		if points is not None:
+			self.points = points
+		else:
+			self.points = []
 
 
 def read_mesh(filename, tag, datadim=1):
 	points, cells, cell_types, pointdata = mesh_io.read_mesh(filename, tag)
-	#print("Points: ", len(points))
+	#print("Points: ", len(points))A2DWL3
 	#print("Point data: ", pointdata)
 	return Mesh(points, cells, cell_types, pointdata)
 
@@ -58,6 +68,44 @@ def main():
 	participant_name = "visualizer"
 	mesh_name = "visMesh"
 	
+	paraview_mesh = meshio.read("case1/case1_single_tracer_fracture-00000.vtu")
+
+
+	print( "General info:\n  {}".format(paraview_mesh) )
+	print( "Cells info:\n {}".format(paraview_mesh.cells) )
+
+	vis_points = np.zeros(( len(paraview_mesh.cells["quad"]), 3)) 
+
+	print( vis_points )
+	for idx, point_list in zip( range(0, len(vis_points)), paraview_mesh.cells["quad"] ):
+	#for celllist in paraview_mesh.cells["quad"]:
+		tmp = np.zeros((1,3))
+		for cell in point_list:
+			for point in paraview_mesh.points[ cell ]:
+		#print( dataset[0] )
+			#print( cell )
+				#print( point )
+				#print( paraview_mesh.points[ cell ] )
+				#print( paraview_mesh.points[ point_id ] )
+				tmp = np.add(tmp, point )
+		vis_points[idx] = tmp
+			#paraview_mesh.points[ dataset[] ]
+		#print( "tmp {}".format(tmp) )
+		#print( "Cell center: {}".format( np.divide(tmp, 4) ) )
+	
+	print( vis_points )
+	print( "vis_points length: {}".format( len( vis_points )) )
+
+	print( "Cell data: {}".format( paraview_mesh.cell_data['quad']['x^tracer_0'] ) )
+	print( "Cell data length: {}".format(  len(paraview_mesh.cell_data['quad']['x^tracer_0']) ) )
+
+
+	
+	#print( "Field data: {}".format( paraview_mesh.field_data ) )
+	#print( "Field data: {}".format( field_data ) )
+	#for fd in paraview_mesh.field_data:
+	#	print( "Field data: {}".format( fd) )
+
 	### Create preCICE interface
 	#interface = precice.Interface(participant_name, configuration_file_name, 0, 1)
 
