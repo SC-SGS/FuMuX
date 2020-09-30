@@ -8,6 +8,8 @@ from ctypes import *
 import meshio #dependency for easy reading of vtu files
 import json
 import precice
+import xml.etree.ElementTree as ET #dependency to parse ParaView pvd file 
+
 
 '''
 Run the script with 
@@ -51,34 +53,61 @@ class DumuxMesh:
 			self.points = points
 		else:
 			self.points = []
+		
+		self.vertex_ids = []
+
+		self.mesh_id = -1
+
+	def __str__(self):
+		numbers = ""
+		if len( self.points) > 4:
+			numbers = "{} {} ... {} {}".format( self.points[0], self.points[1], self.points[-2], self.points[-1] )
+		else:
+			for p in self.points:
+				numbers += "{}".format( p )
+
+		return "DuMuX mesh stats:\n  {} points\n  Coordinates: {}\n".format( len( self.points), numbers ) )
 
 
 def read_mesh(filename, tag, datadim=1):
 	points, cells, cell_types, pointdata = mesh_io.read_mesh(filename, tag)
-	#print("Points: ", len(points))A2DWL3
+	#print("Points: ", len(points))
 	#print("Point data: ", pointdata)
 	return Mesh(points, cells, cell_types, pointdata)
 
 
+cell_type = 'quad'
+data_label = 'x^tracer_0'
 
-def main():
-	print("Starting visualization coupling...")
+def create_file_list( path_to_pvd ):
+	base_path = path_to_pvd.rsplit("/", maxsplit=1)[0]
+	if ( base_path == path_to_pvd ):
+		base_path = ""
+	else:
+		base_path += "/"
 
-	configuration_file_name = "precice-config.xml"
-	participant_name = "visualizer"
-	mesh_name = "visMesh"
-	
-	paraview_mesh = meshio.read("case1/case1_single_tracer_fracture-00000.vtu")
+	print( "Path to VTK files: \"{}\"".format(base_path) )
+
+	tree = ET.parse( path_to_pvd )
+
+	root = tree.getroot()
+	file_list = []
+	for dataset in root.iter("DataSet"):
+		print( dataset.attrib["file"] )
+		file_list.append( base_path + dataset.attrib["file"] )
+
+	return file_list
 
 
-	print( "General info:\n  {}".format(paraview_mesh) )
-	print( "Cells info:\n {}".format(paraview_mesh.cells) )
+def extract_mesh( file_list ):
 
-	vis_points = np.zeros(( len(paraview_mesh.cells["quad"]), 3)) 
+	print( "Extracting mesh from first vtu file!")
 
-	print( vis_points )
-	for idx, point_list in zip( range(0, len(vis_points)), paraview_mesh.cells["quad"] ):
-	#for celllist in paraview_mesh.cells["quad"]:
+	paraview_mesh = meshio.read( file_list[0] )
+	print( paraview_mesh )
+
+	vis_points = np.zeros(( len(paraview_mesh.cells[cell_type]), 3)) 
+	for idx, point_list in zip( range(0, len(vis_points)), paraview_mesh.cells[cell_type] ):
 		tmp = np.zeros((1,3))
 		for cell in point_list:
 			for point in paraview_mesh.points[ cell ]:
@@ -89,18 +118,78 @@ def main():
 				#print( paraview_mesh.points[ point_id ] )
 				tmp = np.add(tmp, point )
 		vis_points[idx] = tmp
+	
+	return DumuxMesh( vis_points )
+
+
+
+def main():
+	args = parse_args()
+	vtu_file_list = create_file_list( args.pvd_filename )
+	print( vtu_file_list )
+	my_mesh = extract_mesh( vtu_file_list )
+	print( my_mesh )
+	#base_path = args.pvd_filename.rsplit("/", maxsplit=1)[0]
+	#if ( base_path == args.pvd_filename ):
+	#	base_path = ""
+	#print( "Path to VTK files: \"{}\"".format(base_path) )
+
+	print("Starting visualization coupling...")
+
+	configuration_file_name = "precice-config.xml"
+	participant_name = "Dumux"
+	mesh_name = "DumuxMesh"
+	
+	#paraview_mesh = meshio.read("case1/case1_single_tracer_fracture-00000.vtu")
+
+
+	#print( "General info:\n  {}".format(paraview_mesh) )
+	#print( "Cells info:\n {}".format(paraview_mesh.cells) )
+
+	#vis_points = np.zeros(( len(paraview_mesh.cells[cell_type]), 3)) 
+
+	#print( vis_points )
+	#for idx, point_list in zip( range(0, len(vis_points)), paraview_mesh.cells[cell_type] ):
+	#for celllist in paraview_mesh.cells["quad"]:
+	#	tmp = np.zeros((1,3))
+#		for cell in point_list:
+#			for point in paraview_mesh.points[ cell ]:
+		#print( dataset[0] )
+			#print( cell )
+				#print( point )
+				#print( paraview_mesh.points[ cell ] )
+				#print( paraview_mesh.points[ point_id ] )
+#				tmp = np.add(tmp, point )
+#		vis_points[idx] = tmp
 			#paraview_mesh.points[ dataset[] ]
 		#print( "tmp {}".format(tmp) )
 		#print( "Cell center: {}".format( np.divide(tmp, 4) ) )
 	
-	print( vis_points )
-	print( "vis_points length: {}".format( len( vis_points )) )
-
-	print( "Cell data: {}".format( paraview_mesh.cell_data['quad']['x^tracer_0'] ) )
-	print( "Cell data length: {}".format(  len(paraview_mesh.cell_data['quad']['x^tracer_0']) ) )
-
 
 	
+	#my_mesh = DumuxMesh( vis_points )
+
+	#print( vis_points )
+	#print( "vis_points length: {}".format( len( vis_points )) )
+
+	#print( "Cell data: {}".format( paraview_mesh.cell_data[cell_type][data_label] ) )
+	#print( "Cell data length: {}".format(  len(paraview_mesh.cell_data[cell_type][data_label]) ) )
+
+	#print( args )
+	tree = ET.parse( args.pvd_filename )
+	#print( tree )
+
+	root = tree.getroot()
+	#print( root )
+
+	#print( [elem.tag for elem in root.iter()] )
+	for dataset in root.iter("DataSet"):
+		#print( dataset )
+		#print( dataset.attrib )
+		print( dataset.attrib["file"] )
+	
+
+
 	#print( "Field data: {}".format( paraview_mesh.field_data ) )
 	#print( "Field data: {}".format( field_data ) )
 	#for fd in paraview_mesh.field_data:
@@ -116,18 +205,17 @@ def main():
 	#mesh_id = interface.get_mesh_id(mesh_name)
 
 
-	args = parse_args()
-	logging.basicConfig(level=getattr(logging, args.logging))
-	if len(args.in_meshname) > 1 and args.out_meshname:
-		logging.warn("--out ignored")
-	mesh_names = args.in_meshname
-	for mesh_name in mesh_names:
-		assert os.path.isfile(mesh_name), ("Invalid filename: "  + mesh_name)
-	mesh = read_mesh(mesh_name, args.tag, args.datadim)
-	print("Points: ", len(mesh.points))
+	#logging.basicConfig(level=getattr(logging, args.logging))
+	#if len(args.in_meshname) > 1 and args.out_meshname:
+	#	logging.warn("--out ignored")
+	#mesh_names = args.in_meshname
+	#for mesh_name in mesh_names:
+	#	assert os.path.isfile(mesh_name), ("Invalid filename: "  + mesh_name)
+	#mesh = read_mesh(mesh_name, args.tag, args.datadim)
+	#print("Points: ", len(mesh.points))
 	#print("Points: ", mesh.points)
 	#print("Point data: ", mesh.celldata)
-	n = len(mesh.points)
+	#n = len(mesh.points)
 
 	vertices_mesh = np.zeros((n, dimensions))
 	pressure = []
@@ -184,13 +272,14 @@ def main():
 def parse_args():
 	parser = argparse.ArgumentParser(description=
                                      "Read meshes, partition them and write them out in internal format.")
-	parser.add_argument("in_meshname", nargs="+", help="The meshes used as input")
+	#parser.add_argument("in_meshname", nargs="+", help="The meshes used as input")
+	parser.add_argument("pvd_filename", type=str, help="Path to ParaView PVD file to parse")
 	parser.add_argument("--tag", "-t", dest="tag", default=None,
-		help="The PointData tag for vtk meshes")
+		help="The CellData tag for vtk meshes")
 	parser.add_argument("--log", "-l", dest="logging", default="INFO", 
 		choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], 
 		help="Set the log level. Default is INFO")
-	parser.add_argument("--datadim", "-d", dest="datadim", default=1, type=int, help="Dimensions of the function. Default is 1 (Scalar function.")
+	#parser.add_argument("--datadim", "-d", dest="datadim", default=1, type=int, help="Dimensions of the function. Default is 1 (scalar function.)")
 	return parser.parse_args()
 
 if __name__ == "__main__":
