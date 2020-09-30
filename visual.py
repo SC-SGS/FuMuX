@@ -131,6 +131,9 @@ def extract_cell_data( file_name, data_label, cell_type = "quad" ):
 
 	return vtu_data.cell_data[cell_type][data_label]
 
+def extract_data_from_vtu( vtu_data, data_label, cell_type = "quad" ):
+	print( vtu_data.cell_data[cell_type][data_label] )
+	return vtu_data.cell_data[cell_type][data_label]
 
 def main():
 	args = parse_args()
@@ -163,7 +166,7 @@ def main():
 	#if len(args.in_meshname) > 1 and args.out_meshname:
 	#	logging.warn("--out ignored")
 	#mesh_names = args.in_meshname
-	#for mesh_name in mesh_names:
+	#for mesh_name in mesh_names:vtu_data = meshio.read( file_name.path )
 	#	assert os.path.isfile(mesh_name), ("Invalid filename: "  + mesh_name)
 	#mesh = read_mesh(mesh_name, args.tag, args.datadim)
 	#print("Points: ", len(mesh.points))
@@ -172,54 +175,60 @@ def main():
 	#n = len(mesh.points)
 
 	#vertices_mesh = np.zeros( )
-	pressure = []
-	concentration = []
-	
-	for i in range(0,n):
-		for j in range(0,dimensions):
-			vertices_mesh[i][j] = mesh.points[i][j]
-		pressure.append(mesh.pointdata[i])
-		concentration.append(mesh.pointdata[i])
+	#pressure = []
+	#concentration = []
+	#for i in range(0,n):
+	#	for j in range(0,dimensions):
+	#		vertices_mesh[i][j] = mesh.points[i][j]
+	#	pressure.append(mesh.pointdata[i])
+	#	concentration.append(mesh.pointdata[i])
 
 
 	# This is the vertices for coupling and also the correct array sizes for the data. Data gets overwritten
-	print("Vertices_mesh: ", vertices_mesh)
+	#print("Vertices_mesh: ", vertices_mesh)
 	#print("Pressure: ", pressure)
 	#print("concentration: ", concentration)
 	
 	### Set mesh for preCICE
-	#data_indices = interface.set_mesh_vertices(mesh_id, vertices_mesh)
+	my_mesh.vertex_ids = interface.set_mesh_vertices( my_mesh.mesh_id, my_mesh.points )
 
 	### Get ID of data
-	#pressure_id = interface.get_data_id("pressure",mesh_id)
-	#concentration_id = interface.get_data_id("concentration",mesh_id)
+	pressure_id = interface.get_data_id("Pressure", my_mesh.mesh_id)
+	concentration_id = interface.get_data_id("Concentration", my_mesh.mesh_id)
 
 	#dt = interface.initialize()
 	fileNumber = 0
 
 	print("preCICE initialized. Begin coupling iterations...")
 
-	#while interface.is_coupling_ongoing():
-	while fileNumber < 3:
-		
-		mesh_name = "case-" + str(fileNumber) + ".vtu"
-		mesh = read_mesh(mesh_name, args.tag, args.datadim)
+	t = 0
+	dt = interface.initialize()
 
-		for i in range(0,n):
-			pressure[i] = mesh.pointdata[i]
-			concentration[i] = mesh.pointdata[i]
+	#while interface.is_coupling_ongoing():
+	for vtu_file in vtu_file_list:
+		vtu_data = meshio.read( vtu_file.path )
+
+		assert (abs(t - vtu_data.t) / t < TIME_EPS), "Time does not fit with time from data set!\n    Coupling time: {}\n    Data set time: {}".format( t, vtu_data.t ) 
+
+		pressure = extract_data_from_vtu( vtu_data, "Pressure" )
+		pressure = extract_data_from_vtu( vtu_data, "x^tracer_0" )
+#		for i in range(0,n):
+#			pressure[i] = mesh.pointdata[i]
+#			concentration[i] = mesh.pointdata[i]
 
 		print("Pressure: ", pressure)
 		print("fileNumber: ", fileNumber)
-	
-		#interface.write_block_scalar_data(pressure_id, data_indices, pressure)
-    	#interface.write_block_scalar_data(concentration_id, data_indices, concentration)
+		
+		interface.write_block_scalar_data(pressure_id, my_mesh.vertex_ids, pressure)
+		interface.write_block_scalar_data(concentration_id, my_mesh.vertex_ids, concentration)
 
-		#dt = interface.advance(dt)
+		dt = interface.advance(dt)
 
 		fileNumber += 1
 
-	#interface.finalize()
+		t += dt
+
+	interface.finalize()
 	print("Closing visualization...")
 
 
