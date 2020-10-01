@@ -7,10 +7,10 @@ import shutil
 #import mesh_io
 import meshio #dependency for easy reading of vtu files
 import json
-import precice
+import precice_future as precice
 import xml.etree.ElementTree as ET #dependency to parse ParaView pvd file 
 import collections
-
+import time
 
 '''
 Run the script with 
@@ -18,6 +18,7 @@ Run the script with
 '''
 
 TIME_EPS = 1e-10
+SLEEP_TIME = 1.5
 DataSet = collections.namedtuple("DataSet", [ "t", "path" ])
 
 class Mesh:
@@ -94,7 +95,7 @@ def create_file_list( path_to_pvd ):
 	for dataset in root.iter("DataSet"):
 		print( dataset.attrib["file"] )
 		#file_list.append( base_path + dataset.attrib["file"] )
-		file_list.append( DataSet( dataset.attrib["timestep"], base_path + dataset.attrib["file"]) )
+		file_list.append( DataSet( float(dataset.attrib["timestep"]), base_path + dataset.attrib["file"]) )
 
 	print( file_list )
 	return file_list
@@ -127,13 +128,16 @@ def extract_cell_data( file_name, data_label, cell_type = "quad" ):
 	#print( "Extracting mesh from first vtu file!")
 	vtu_data = meshio.read( file_name.path )
 	#print( paraview_mesh )
-	print( vtu_data.cell_data[cell_type][data_label] )
+	#print( vtu_data.cell_data[cell_type][data_label] )
 
+	print( "{} has shape {} ".format( data_label, np.shape( vtu_data.cell_data[cell_type][data_label] ) ) )
 	return vtu_data.cell_data[cell_type][data_label]
 
 def extract_data_from_vtu( vtu_data, data_label, cell_type = "quad" ):
-	print( vtu_data.cell_data[cell_type][data_label] )
-	return vtu_data.cell_data[cell_type][data_label]
+	#print( vtu_data.cell_data[cell_type][data_label] )
+	#print( "{} has shape {} ".format( data_label, np.shape( vtu_data.cell_data[cell_type][data_label] ) ) )
+	old_shape = np.shape( vtu_data.cell_data[cell_type][data_label] ) 
+	return np.reshape( vtu_data.cell_data[cell_type][data_label], (old_shape[0],) ) 
 
 def main():
 	args = parse_args()
@@ -153,7 +157,8 @@ def main():
 	#mesh_name = "DumuxMesh"
 	
 	### Create preCICE interfacemesh_id
-	interface = precice.Interface(participant_name, configuration_file_name, 0, 1)
+	interface = precice.Interface(participant_name, 0, 1)
+	interface.configure(configuration_file_name)
 
 	#dimensions = interface.get_dimensions()
 	dimensions = 3
@@ -191,6 +196,7 @@ def main():
 	
 	### Set mesh for preCICE
 	my_mesh.vertex_ids = interface.set_mesh_vertices( my_mesh.mesh_id, my_mesh.points )
+	print( my_mesh.vertex_ids )
 
 	### Get ID of data
 	pressure_id = interface.get_data_id("Pressure", my_mesh.mesh_id)
@@ -206,27 +212,38 @@ def main():
 
 	#while interface.is_coupling_ongoing():
 	for vtu_file in vtu_file_list:
+
 		vtu_data = meshio.read( vtu_file.path )
+		print( "VTU data: {}".format(vtu_file) )
+		print( "Time difference: abs(t - vtu_file.t) / t = {} ".format(abs(t - vtu_file.t) / (t +TIME_EPS )))
 
-		assert (abs(t - vtu_data.t) / t < TIME_EPS), "Time does not fit with time from data set!\n    Coupling time: {}\n    Data set time: {}".format( t, vtu_data.t ) 
+		assert (abs(t - vtu_file.t) / (t+TIME_EPS) < TIME_EPS), "Time does not fit with time from data set!\n    Coupling time: {}\n    Data set time: {}".format( t, vtu_data.t ) 
 
-		pressure = extract_data_from_vtu( vtu_data, "Pressure" )
-		pressure = extract_data_from_vtu( vtu_data, "x^tracer_0" )
+		pressure = extract_data_from_vtu( vtu_data, "rho" )
+		concentration = extract_data_from_vtu( vtu_data, "x^tracer_0" )
 #		for i in range(0,n):
 #			pressure[i] = mesh.pointdata[i]
 #			concentration[i] = mesh.pointdata[i]
 
-		print("Pressure: ", pressure)
+		#print("Pressure: ", pressure)
+		#print("Concentration: ", concentration)
+		#print("Vertex Ids shape: ", np.shape( my_mesh.vertex_ids ) )
+		#print("Vertex Ids: ", my_mesh.vertex_ids)
 		print("fileNumber: ", fileNumber)
 		
 		interface.write_block_scalar_data(pressure_id, my_mesh.vertex_ids, pressure)
 		interface.write_block_scalar_data(concentration_id, my_mesh.vertex_ids, concentration)
 
 		dt = interface.advance(dt)
+		print( "Sleeping for a {}s".format(SLEEP_TIME) )
+		time.sleep(SLEEP_TIME)
 
 		fileNumber += 1
 
 		t += dt
+		print( "Simulation time:  {}".format(t) )
+
+	print( "No more new files to process! If the final simulation time has not been reached, you have to kill the process now." )
 
 	interface.finalize()
 	print("Closing visualization...")
