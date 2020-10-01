@@ -14,7 +14,7 @@ import time
 
 '''
 Run the script with 
-	python3 visual.py case1/case1_single_tracer_fracture.pvd case1/precice-config.xml
+	python3 fumux.py case1/case1_single_tracer_fracture.pvd case1/precice-config.xml
 '''
 
 TIME_EPS = 1e-10
