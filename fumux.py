@@ -18,7 +18,7 @@ Run the script with
 '''
 
 TIME_EPS = 1e-10
-SLEEP_TIME = 1.5
+SLEEP_TIME = 0.5
 DataSet = collections.namedtuple("DataSet", [ "t", "path" ])
 
 class Mesh:
@@ -107,7 +107,7 @@ def extract_mesh( file_list, cell_type = "quad" ):
 
 	paraview_mesh = meshio.read( file_list[0].path )
 	print( paraview_mesh )
-
+ 
 	vis_points = np.zeros(( len(paraview_mesh.cells[cell_type]), 3)) 
 	for idx, point_list in zip( range(0, len(vis_points)), paraview_mesh.cells[cell_type] ):
 		tmp = np.zeros((1,3))
@@ -119,8 +119,10 @@ def extract_mesh( file_list, cell_type = "quad" ):
 				#print( paraview_mesh.points[ cell ] )
 				#print( paraview_mesh.points[ point_id ] )
 				tmp = np.add(tmp, point )
-		vis_points[idx] = tmp
+		vis_points[idx] = tmp / 4.
 	
+	print( vis_points )
+
 	return DumuxMesh( vis_points )
 
 def extract_cell_data( file_name, data_label, cell_type = "quad" ):
@@ -178,7 +180,6 @@ def main():
 	#print("Points: ", mesh.points)
 	#print("Point data: ", mesh.celldata)
 	#n = len(mesh.points)
-
 	#vertices_mesh = np.zeros( )
 	#pressure = []
 	#concentration = []
@@ -212,6 +213,8 @@ def main():
 
 	#while interface.is_coupling_ongoing():
 	for vtu_file in vtu_file_list:
+		if not interface.is_coupling_ongoing():
+			break
 
 		vtu_data = meshio.read( vtu_file.path )
 		print( "VTU data: {}".format(vtu_file) )
@@ -220,13 +223,14 @@ def main():
 		assert (abs(t - vtu_file.t) / (t+TIME_EPS) < TIME_EPS), "Time does not fit with time from data set!\n    Coupling time: {}\n    Data set time: {}".format( t, vtu_data.t ) 
 
 		pressure = extract_data_from_vtu( vtu_data, "rho" )
-		concentration = extract_data_from_vtu( vtu_data, "x^tracer_0" )
+		concentration = extract_data_from_vtu( vtu_data, "X^tracer_0" )
 #		for i in range(0,n):
 #			pressure[i] = mesh.pointdata[i]
 #			concentration[i] = mesh.pointdata[i]
 
 		#print("Pressure: ", pressure)
 		#print("Concentration: ", concentration)
+		print("Concentration: ", concentration[my_mesh.vertex_ids] ) 
 		#print("Vertex Ids shape: ", np.shape( my_mesh.vertex_ids ) )
 		#print("Vertex Ids: ", my_mesh.vertex_ids)
 		print("fileNumber: ", fileNumber)
@@ -243,6 +247,7 @@ def main():
 		t += dt
 		print( "Simulation time:  {}".format(t) )
 
+	print( "This process does only terminate automatically after the final simulation time has been reached AND the visualization program is closed.")
 	print( "No more new files to process! If the final simulation time has not been reached, you have to kill the process now." )
 
 	interface.finalize()
@@ -255,8 +260,8 @@ def parse_args():
 	#parser.add_argument("in_meshname", nargs="+", help="The meshes used as input")
 	parser.add_argument("pvd_filename", type=str, help="Path to ParaView PVD file to parse")
 	parser.add_argument("precice_config", type=str, help="Path to preCICE XML configuration")
-	parser.add_argument("--tag", "-t", dest="tag", default=None,
-		help="The CellData tag for vtk meshes")
+	#parser.add_argument("--tag", "-t", dest="tag", default=None,
+#		help="The CellData tag for vtk meshes")
 	parser.add_argument("--log", "-l", dest="logging", default="INFO", 
 		choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], 
 		help="Set the log level. Default is INFO")
