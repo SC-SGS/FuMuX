@@ -193,3 +193,8 @@ acs-*.bib
 
 # Temporeries
 *~
+
+# Paraview files
+*.pvd
+*.vtu
+*.vtk

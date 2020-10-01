@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+
+<precice-configuration>
+  <log>
+    <sink type="stream" output="stdout"  filter= "(%Severity% > debug) or (%Severity% >= trace and %Module% contains SolverInterfaceImpl)"  enabled="false" /> 
+    <sink type="stream" output="stdout"  enabled="false" /> 
+  </log> 
+
+  <solver-interface dimensions="3">
+
+    <data:scalar name="Pressure"/>
+    <data:scalar name="Concentration"/>
+
+    <mesh name="DumuxMesh">
+      <use-data name="Pressure" />
+      <use-data name="Concentration" />
+    </mesh>
+
+    <mesh name="VisusMesh">
+      <use-data name="Pressure" />
+      <use-data name="Concentration" />
+    </mesh>
+
+    <participant name="Dumux">
+      <use-mesh name="DumuxMesh" provide="yes"/>
+      <write-data name="Pressure" mesh="DumuxMesh"/>
+      <write-data name="Concentration" mesh="DumuxMesh"/>
+    </participant>
+
+    <participant name="Visus">
+      <use-mesh name="DumuxMesh" from="Dumux"/>
+      <use-mesh name="VisusMesh" provide="yes"/>
+      
+      <read-data name="Pressure" mesh="VisusMesh"/>
+      <read-data name="Concentration" mesh="VisusMesh"/>
+
+      <mapping:nearest-neighbor direction="read" from="DumuxMesh" to="VisusMesh" constraint="consistent"/> 
+      <!--
+      <mapping:nearest-projection direction="read" from="DumuxMesh" to="VisusMesh" constraint="consistent"/>
+    -->
+      
+
+    </participant>
+
+    <m2n:sockets from="Dumux" to="Visus" distribution-type="gather-scatter" network="lo" exchange-directory="/tmp/coupling" />
+    
+    
+    <coupling-scheme:parallel-explicit>
+      <participants first="Dumux" second="Visus"/>
+      <max-time value="1e9"/>
+      <timestep-length value="1e7" />
+
+      <exchange data="Pressure" mesh="DumuxMesh" from="Dumux" to="Visus" />
+      <exchange data="Concentration" mesh="DumuxMesh" from="Dumux" to="Visus" initialize="false" />
+           
+    </coupling-scheme:parallel-explicit>
+  </solver-interface>
+</precice-configuration>
+
