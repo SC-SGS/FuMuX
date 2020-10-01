@@ -1,0 +1,150 @@
+<?xml version="1.0" ?>
+<precice-configuration xmlns:coupling-scheme="cs" xmlns:data="data" xmlns:m2n="comm" xmlns:mapping="mapping">
+  <!--Logging-->
+  <log>
+    <sink enabled="false" type="stream"/>
+  </log>
+  <solver-interface dimensions="3">
+    <data:scalar name="Concentration0"/>
+    <data:scalar name="Concentration1"/>
+    <data:scalar name="Concentration2"/>
+    <data:scalar name="Concentration3"/>
+    <data:scalar name="Concentration4"/>
+    <data:scalar name="Concentration5"/>
+    <data:scalar name="Concentration6"/>
+    <data:scalar name="Concentration7"/>
+    <data:scalar name="Concentration8"/>
+    <mesh name="DumuxMesh0">
+      <use-data name="Concentration0"/>
+    </mesh>
+    <mesh name="DumuxMesh1">
+      <use-data name="Concentration1"/>
+    </mesh>
+    <mesh name="DumuxMesh2">
+      <use-data name="Concentration2"/>
+    </mesh>
+    <mesh name="DumuxMesh3">
+      <use-data name="Concentration3"/>
+    </mesh>
+    <mesh name="DumuxMesh4">
+      <use-data name="Concentration4"/>
+    </mesh>
+    <mesh name="DumuxMesh5">
+      <use-data name="Concentration5"/>
+    </mesh>
+    <mesh name="DumuxMesh6">
+      <use-data name="Concentration6"/>
+    </mesh>
+    <mesh name="DumuxMesh7">
+      <use-data name="Concentration7"/>
+    </mesh>
+    <mesh name="DumuxMesh8">
+      <use-data name="Concentration8"/>
+    </mesh>
+    <mesh name="VisusMesh0">
+      <use-data name="Concentration0"/>
+    </mesh>
+    <mesh name="VisusMesh1">
+      <use-data name="Concentration1"/>
+    </mesh>
+    <mesh name="VisusMesh2">
+      <use-data name="Concentration2"/>
+    </mesh>
+    <mesh name="VisusMesh3">
+      <use-data name="Concentration3"/>
+    </mesh>
+    <mesh name="VisusMesh4">
+      <use-data name="Concentration4"/>
+    </mesh>
+    <mesh name="VisusMesh5">
+      <use-data name="Concentration5"/>
+    </mesh>
+    <mesh name="VisusMesh6">
+      <use-data name="Concentration6"/>
+    </mesh>
+    <mesh name="VisusMesh7">
+      <use-data name="Concentration7"/>
+    </mesh>
+    <mesh name="VisusMesh8">
+      <use-data name="Concentration8"/>
+    </mesh>
+    <participant name="Dumux">
+      <use-mesh name="DumuxMesh0" provide="yes"/>
+      <use-mesh name="DumuxMesh1" provide="yes"/>
+      <use-mesh name="DumuxMesh2" provide="yes"/>
+      <use-mesh name="DumuxMesh3" provide="yes"/>
+      <use-mesh name="DumuxMesh4" provide="yes"/>
+      <use-mesh name="DumuxMesh5" provide="yes"/>
+      <use-mesh name="DumuxMesh6" provide="yes"/>
+      <use-mesh name="DumuxMesh7" provide="yes"/>
+      <use-mesh name="DumuxMesh8" provide="yes"/>
+      <write-data mesh="DumuxMesh0" name="Concentration0"/>
+      <write-data mesh="DumuxMesh1" name="Concentration1"/>
+      <write-data mesh="DumuxMesh2" name="Concentration2"/>
+      <write-data mesh="DumuxMesh3" name="Concentration3"/>
+      <write-data mesh="DumuxMesh4" name="Concentration4"/>
+      <write-data mesh="DumuxMesh5" name="Concentration5"/>
+      <write-data mesh="DumuxMesh6" name="Concentration6"/>
+      <write-data mesh="DumuxMesh7" name="Concentration7"/>
+      <write-data mesh="DumuxMesh8" name="Concentration8"/>
+    </participant>
+    <participant name="Visus">
+      <use-mesh name="VisusMesh0" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh0"/>
+      <use-mesh name="VisusMesh1" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh1"/>
+      <use-mesh name="VisusMesh2" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh2"/>
+      <use-mesh name="VisusMesh3" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh3"/>
+      <use-mesh name="VisusMesh4" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh4"/>
+      <use-mesh name="VisusMesh5" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh5"/>
+      <use-mesh name="VisusMesh6" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh6"/>
+      <use-mesh name="VisusMesh7" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh7"/>
+      <use-mesh name="VisusMesh8" provide="yes"/>
+      <use-mesh from="Dumux" name="DumuxMesh8"/>
+      <read-data mesh="VisusMesh0" name="Concentration0"/>
+      <read-data mesh="VisusMesh1" name="Concentration1"/>
+      <read-data mesh="VisusMesh2" name="Concentration2"/>
+      <read-data mesh="VisusMesh3" name="Concentration3"/>
+      <read-data mesh="VisusMesh4" name="Concentration4"/>
+      <read-data mesh="VisusMesh5" name="Concentration5"/>
+      <read-data mesh="VisusMesh6" name="Concentration6"/>
+      <read-data mesh="VisusMesh7" name="Concentration7"/>
+      <read-data mesh="VisusMesh8" name="Concentration8"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh0" to="VisusMesh0"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh1" to="VisusMesh1"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh2" to="VisusMesh2"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh3" to="VisusMesh3"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh4" to="VisusMesh4"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh5" to="VisusMesh5"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh6" to="VisusMesh6"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh7" to="VisusMesh7"/>
+      <mapping:nearest-neighbor constraint="consistent" direction="read" from="DumuxMesh8" to="VisusMesh8"/>
+      <!-- 
+    <export:vtk directory="preCICE-output" /> 
+    -->
+
+    </participant>
+    <m2n:sockets distribution-type="gather-scatter" exchange-directory="/tmp/coupling" from="Dumux" network="lo" to="Visus"/>
+    <coupling-scheme:parallel-explicit>
+      <participants first="Dumux" second="Visus"/>
+      <max-time value="0.25"/>
+      <timestep-length value="0.0025"/>
+      <exchange data="Concentration0" from="Dumux" mesh="DumuxMesh0" to="Visus"/>
+      <exchange data="Concentration1" from="Dumux" mesh="DumuxMesh1" to="Visus"/>
+      <exchange data="Concentration2" from="Dumux" mesh="DumuxMesh2" to="Visus"/>
+      <exchange data="Concentration3" from="Dumux" mesh="DumuxMesh3" to="Visus"/>
+      <exchange data="Concentration4" from="Dumux" mesh="DumuxMesh4" to="Visus"/>
+      <exchange data="Concentration5" from="Dumux" mesh="DumuxMesh5" to="Visus"/>
+      <exchange data="Concentration6" from="Dumux" mesh="DumuxMesh6" to="Visus"/>
+      <exchange data="Concentration7" from="Dumux" mesh="DumuxMesh7" to="Visus"/>
+      <exchange data="Concentration8" from="Dumux" mesh="DumuxMesh8" to="Visus"/>
+    </coupling-scheme:parallel-explicit>
+  </solver-interface>
+</precice-configuration>
+
