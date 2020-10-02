@@ -27,14 +27,14 @@ GridOptions = collections.namedtuple('GridOptions', 'id, x0, x1' )
 
 gridOptions = [
 	GridOptions( id=0, x0= np.array( [0.500, 0.000, 0.000]), x1= np.array( [0.500, 1.000, 1.000] ) ),
-    #GridOptions( id=1, x0= np.array( [0.000, 0.500, 0.000]), x1= np.array( [1.000, 0.500, 1.000] ) ),
-    #GridOptions( id=2, x0= np.array( [0.000, 0.000, 0.500]), x1= np.array( [1.000, 1.000, 0.500] ) ),    
-    #GridOptions( id=3, x0= np.array( [0.750, 0.500, 0.500]), x1= np.array( [0.750, 1.000, 1.000] ) ),
-    #GridOptions( id=5, x0= np.array( [0.500, 0.750, 0.500]), x1= np.array( [1.000, 0.750, 1.000] ) ), 
-    #GridOptions( id=4, x0= np.array( [0.500, 0.500, 0.750]), x1= np.array( [1.000, 1.000, 0.750] ) ),    
-    #GridOptions( id=7, x0= np.array( [0.625, 0.500, 0.500]), x1= np.array( [0.625, 0.750, 0.750] ) ),
-    #GridOptions( id=6, x0= np.array( [0.500, 0.625, 0.500]), x1= np.array( [0.750, 0.625, 0.750] ) ),
-    #GridOptions( id=8, x0= np.array( [0.500, 0.500, 0.625]), x1= np.array( [0.750, 0.750, 0.625] ) ),
+    GridOptions( id=1, x0= np.array( [0.000, 0.500, 0.000]), x1= np.array( [1.000, 0.500, 1.000] ) ),
+    GridOptions( id=2, x0= np.array( [0.000, 0.000, 0.500]), x1= np.array( [1.000, 1.000, 0.500] ) ),    
+    GridOptions( id=3, x0= np.array( [0.750, 0.500, 0.500]), x1= np.array( [0.750, 1.000, 1.000] ) ),
+    GridOptions( id=5, x0= np.array( [0.500, 0.750, 0.500]), x1= np.array( [1.000, 0.750, 1.000] ) ), 
+    GridOptions( id=4, x0= np.array( [0.500, 0.500, 0.750]), x1= np.array( [1.000, 1.000, 0.750] ) ),    
+    GridOptions( id=7, x0= np.array( [0.625, 0.500, 0.500]), x1= np.array( [0.625, 0.750, 0.750] ) ),
+    GridOptions( id=6, x0= np.array( [0.500, 0.625, 0.500]), x1= np.array( [0.750, 0.625, 0.750] ) ),
+    GridOptions( id=8, x0= np.array( [0.500, 0.500, 0.625]), x1= np.array( [0.750, 0.750, 0.625] ) ),
 	]
 
 class Mesh:
@@ -95,7 +95,14 @@ class DumuxMesh:
 			for p in self.points:
 				numbers += "{}".format( p )
 
-		return "DuMuX mesh stats:\n  {} points\n  Coordinates: {}\n".format( len( self.points), numbers ) 
+		mapped_ids = ""
+		if len( self.global_to_mesh_id) > 4:
+			mapped_ids = "{} {} ... {} {}".format( self.global_to_mesh_id[0], self.global_to_mesh_id[1], self.global_to_mesh_id[-2], self.global_to_mesh_id[-1] )
+		else:
+			for p in self.points:
+				mapped_ids += "{}".global_to_mesh_id( p )				
+
+		return "DuMuX mesh stats:\n  Mesh name: {}\n  Mesh id: {}\n  Data id: {}\n  {} points\n  Coordinates: {}\n  Mapped ids: {}\n".format( self.mesh_name, self.mesh_id, self.data_id, len( self.points), numbers, mapped_ids ) 
 
 
 
@@ -141,34 +148,44 @@ def extract_meshes( file_list, cell_type = "quad" ):
 	#for idx, point_list in zip( range(0, len(vis_points)), paraview_mesh.cells[cell_type] ):
 
 	for idx, cell_point_list in zip( range(0,len(paraview_mesh.cells[cell_type])), paraview_mesh.cells[cell_type]):
-		tmp = np.zeros((1,3))
+		tmp = np.zeros(3)
 		#print( "cell point list: ", cell_point_list )
 		for cell_point_id in cell_point_list:
 			#print( "cell point id: ", cell_point_id )
 
 			# Check if all points of cell are on surface
 			for mesh in meshes:
+				p0 = mesh.grid_option.x0
+				p1 = mesh.grid_option.x1
+#				print( "Checking if cell is in the rectangle:\n    Cell: {}\n    p0: {}\n    p1:{} ".format(paraview_mesh.points[ cell_point_list ][:], p0, p1) )
 				cell_is_in_grid = True
-				for point in paraview_mesh.points[ cell_point_id ][0]:
-					print( "point: ", point)
-					p0 = mesh.grid_option.x0
-					p1 = mesh.grid_option.x1
+				for point in paraview_mesh.points[ cell_point_id ]:
+					#print( "point (before reshaping): ", point)
+					point = np.reshape(point[0], (3))
+					#print( "point: ", point)
+					#print( "point: ", np.reshape(point[0], (3,)) )
 
-					print( "p0", p0 )
-					print( "p1", p1 )
+					#print( "p0", p0 )
+					#print( "p1", p1 )
+					
 					# Is cell in current mesh?
-					if (not ( min( p0[0], p1[0])-COMPARE_EPS <= point[0] <= max(p0[0], p1[0])+COMPARE_EPS and min( p0[1], p1[1])-COMPARE_EPS <= point[1] <= max(p0[1], p1[1])+COMPARE_EPS and min( p0[2], p1[2])-COMPARE_EPS <= point[2] <= max(p0[2], p1[2])+COMPARE_EPS ) ):
+					if (not (  (min( p0[0], p1[0])-COMPARE_EPS <= point[0] <= max(p0[0], p1[0])+COMPARE_EPS) and (min( p0[1], p1[1])-COMPARE_EPS <= point[1] <= max(p0[1], p1[1])+COMPARE_EPS) and (min( p0[2], p1[2])-COMPARE_EPS <= point[2] <= max(p0[2], p1[2])+COMPARE_EPS ) ) ):
 						#print( "The point is not in the rectangle:\n    Point: {}\n    p0: {}\n    p1:{} ".format(point, p0, p1) )
 						#print( "p0", p0 )
 						#print( "p1", p1 )
 						cell_is_in_grid = False
 						break
+#					else:
+#						print( "Point is accepted! ", point)
+#						print( "min( p0[0], p1[0])-COMPARE_EPS <= point[0] <= max(p0[0], p1[0])+COMPARE_EPS: {}".format(min( p0[0], p1[0])-COMPARE_EPS <= point[0] <= max(p0[0], p1[0])+COMPARE_EPS ))
 			
 
 				if cell_is_in_grid == True:
-					print( "The cell is in the rectangle:\n    Cell: {}\n    p0: {}\n    p1:{} ".format(paraview_mesh.points[ cell_point_list ][:], p0, p1) )
+					#print( "The cell is in the rectangle:\n    Cell: {}\n    p0: {}\n    p1:{} ".format(paraview_mesh.points[ cell_point_list ][:], p0, p1) )
 					for point in paraview_mesh.points[ cell_point_id ]:
-						tmp = np.add(tmp, point )
+						point = np.reshape(point[0], (3))
+						#print( "Points to add:\n    tmp: {}\n    point: {}".format( tmp, point ) )
+						tmp = np.add( tmp, point )
 					tmp /= len(paraview_mesh.points[ cell_point_id ])
 					#print( "Mid point", tmp)
 					mesh.points.append( tmp )
@@ -180,13 +197,23 @@ def extract_meshes( file_list, cell_type = "quad" ):
 	
 	sum_of_points = 0
 	for mesh in meshes:
-		print( mesh )
 		sum_of_points += len(mesh.points)
+
+		mesh.points = np.array( mesh.points )
+		#mesh.points = np.reshape( mesh.points, (len(mesh.points)/3,3) )
+		mesh.global_to_mesh_id = np.array( mesh.global_to_mesh_id )
+
+		mesh.mesh_name = "DumuxMesh{}".format(mesh.grid_option.id)
+
+		#print( np.array( mesh.points ) )
+		#print( mesh.global_to_mesh_id )
+		#print( np.array( mesh.global_to_mesh_id, (len(mesh.global_to_mesh_id),) ) )
+		#print( mesh )
 	print( "Total number of points: ", sum_of_points)
 	#	mesh.points = np.array( points )
 	#print( vis_points )
 
-	return DumuxMesh( vis_points )
+	return meshes
 
 def extract_cell_data( file_name, data_label, cell_type = "quad" ):
 
@@ -208,9 +235,9 @@ def main():
 	args = parse_args()
 	vtu_file_list = create_file_list( args.pvd_filename )
 	print( vtu_file_list )
-	my_mesh = extract_meshes( vtu_file_list, "triangle" )
-	my_mesh.mesh_name = "DumuxMesh"
-	print( my_mesh )
+	my_meshes = extract_meshes( vtu_file_list, "triangle" )
+	#my_mesh.mesh_name = "DumuxMesh"
+	#print( my_mesh )
 
 	#print( extract_cell_data( vtu_file_list[0], "x^tracer_0" ) )
 
@@ -229,7 +256,16 @@ def main():
 	dimensions = 3
 
 	### Get mesh ID for preCICE
-	my_mesh.mesh_id = interface.get_mesh_id( my_mesh.mesh_name )
+
+	for mesh in my_meshes:
+		mesh.mesh_id = interface.get_mesh_id( mesh.mesh_name )
+		mesh.vertex_ids = interface.set_mesh_vertices( mesh.mesh_id, mesh.points )
+
+		### Get ID of data
+		mesh.data_id = interface.get_data_id("Concentration{}".format( mesh.grid_option.id ), mesh.mesh_id  )
+
+		print( mesh )
+		#print( mesh.vertex_ids )
 
 
 	#logging.basicConfig(level=getattr(logging, args.logging))
@@ -259,12 +295,10 @@ def main():
 	#print("concentration: ", concentration)
 	
 	### Set mesh for preCICE
-	my_mesh.vertex_ids = interface.set_mesh_vertices( my_mesh.mesh_id, my_mesh.points )
-	print( my_mesh.vertex_ids )
 
 	### Get ID of data
-	pressure_id = interface.get_data_id("Pressure", my_mesh.mesh_id)
-	concentration_id = interface.get_data_id("Concentration", my_mesh.mesh_id)
+	#pressure_id = interface.get_data_id("Pressure", my_mesh.mesh_id)
+	#concentration_id = interface.get_data_id("Concentration", my_mesh.mesh_id)
 
 	#dt = interface.initialize()
 	fileNumber = 0
@@ -285,21 +319,23 @@ def main():
 
 		assert (abs(t - vtu_file.t) / (t+TIME_EPS) < TIME_EPS), "Time does not fit with time from data set!\n    Coupling time: {}\n    Data set time: {}".format( t, vtu_data.t ) 
 
-		pressure = extract_data_from_vtu( vtu_data, "rho" )
-		concentration = extract_data_from_vtu( vtu_data, "X^tracer_0" )
-#		for i in range(0,n):
-#			pressure[i] = mesh.pointdata[i]
-#			concentration[i] = mesh.pointdata[i]
+		#pressure = extract_data_from_vtu( vtu_data, "rho" )
 
-		#print("Pressure: ", pressure)
-		#print("Concentration: ", concentration)
-		print("Concentration: ", concentration[my_mesh.vertex_ids] ) 
-		#print("Vertex Ids shape: ", np.shape( my_mesh.vertex_ids ) )
-		#print("Vertex Ids: ", my_mesh.vertex_ids)
-		print("fileNumber: ", fileNumber)
-		
-		interface.write_block_scalar_data(pressure_id, my_mesh.vertex_ids, pressure)
-		interface.write_block_scalar_data(concentration_id, my_mesh.vertex_ids, concentration)
+		concentration = extract_data_from_vtu( vtu_data, "X^tracer_0", "triangle" )
+		for mesh in my_meshes:
+			
+	#		for i in range(0,n):
+	#			pressure[i] = mesh.pointdata[i]
+	#			concentration[i] = mesh.pointdata[i]
+
+			#print("Pressure: ", pressure)
+			#print("Concentration: ", concentration)
+			print("Concentration: ", concentration[mesh.global_to_mesh_id] ) 
+			#print("Vertex Ids shape: ", np.shape( my_mesh.vertex_ids ) )
+			#print("Vertex Ids: ", my_mesh.vertex_ids)
+			print("fileNumber: ", fileNumber)
+			
+			interface.write_block_scalar_data( mesh.data_id, mesh.vertex_ids, concentration[mesh.global_to_mesh_id] )
 
 		dt = interface.advance(dt)
 		print( "Sleeping for a {}s".format(SLEEP_TIME) )
