@@ -18,6 +18,7 @@ Run the script with
 '''
 
 TIME_EPS = 1e-10
+COMPARE_EPS = 1e-12
 SLEEP_TIME = 0.5
 DataSet = collections.namedtuple("DataSet", [ "t", "path" ])
 
@@ -26,14 +27,14 @@ GridOptions = collections.namedtuple('GridOptions', 'id, x0, x1' )
 
 gridOptions = [
 	GridOptions( id=0, x0= np.array( [0.500, 0.000, 0.000]), x1= np.array( [0.500, 1.000, 1.000] ) ),
-    GridOptions( id=1, x0= np.array( [0.000, 0.500, 0.000]), x1= np.array( [1.000, 0.500, 1.000] ) ),
-    GridOptions( id=2, x0= np.array( [0.000, 0.000, 0.500]), x1= np.array( [1.000, 1.000, 0.500] ) ),    
-    GridOptions( id=3, x0= np.array( [0.750, 0.500, 0.500]), x1= np.array( [0.750, 1.000, 1.000] ) ),
-    GridOptions( id=5, x0= np.array( [0.500, 0.750, 0.500]), x1= np.array( [1.000, 0.750, 1.000] ) ), 
-    GridOptions( id=4, x0= np.array( [0.500, 0.500, 0.750]), x1= np.array( [1.000, 1.000, 0.750] ) ),    
-    GridOptions( id=7, x0= np.array( [0.625, 0.500, 0.500]), x1= np.array( [0.625, 0.750, 0.750] ) ),
-    GridOptions( id=6, x0= np.array( [0.500, 0.625, 0.500]), x1= np.array( [0.750, 0.625, 0.750] ) ),
-    GridOptions( id=8, x0= np.array( [0.500, 0.500, 0.625]), x1= np.array( [0.750, 0.750, 0.625] ) ),
+    #GridOptions( id=1, x0= np.array( [0.000, 0.500, 0.000]), x1= np.array( [1.000, 0.500, 1.000] ) ),
+    #GridOptions( id=2, x0= np.array( [0.000, 0.000, 0.500]), x1= np.array( [1.000, 1.000, 0.500] ) ),    
+    #GridOptions( id=3, x0= np.array( [0.750, 0.500, 0.500]), x1= np.array( [0.750, 1.000, 1.000] ) ),
+    #GridOptions( id=5, x0= np.array( [0.500, 0.750, 0.500]), x1= np.array( [1.000, 0.750, 1.000] ) ), 
+    #GridOptions( id=4, x0= np.array( [0.500, 0.500, 0.750]), x1= np.array( [1.000, 1.000, 0.750] ) ),    
+    #GridOptions( id=7, x0= np.array( [0.625, 0.500, 0.500]), x1= np.array( [0.625, 0.750, 0.750] ) ),
+    #GridOptions( id=6, x0= np.array( [0.500, 0.625, 0.500]), x1= np.array( [0.750, 0.625, 0.750] ) ),
+    #GridOptions( id=8, x0= np.array( [0.500, 0.500, 0.625]), x1= np.array( [0.750, 0.750, 0.625] ) ),
 	]
 
 class Mesh:
@@ -80,6 +81,10 @@ class DumuxMesh:
 		self.vertex_ids = []
 
 		self.mesh_id = -1
+		self.data_id = -1
+
+		self.global_to_mesh_id = []
+
 		self.mesh_name = "unnamed"
 
 	def __str__(self):
@@ -133,32 +138,52 @@ def extract_meshes( file_list, cell_type = "quad" ):
 		meshes.append( DumuxMesh( grid_option ) )
 	print( meshes )
 
-	for cell_list in paraview_mesh.cells[cell_type]:
+	#for idx, point_list in zip( range(0, len(vis_points)), paraview_mesh.cells[cell_type] ):
+
+	for idx, cell_point_list in zip( range(0,len(paraview_mesh.cells[cell_type])), paraview_mesh.cells[cell_type]):
 		tmp = np.zeros((1,3))
-		for cell in cell_list:
+		#print( "cell point list: ", cell_point_list )
+		for cell_point_id in cell_point_list:
+			#print( "cell point id: ", cell_point_id )
 
 			# Check if all points of cell are on surface
-			for grid in gridOptions:
-				cell_is_in_grid = True 
-				for point in paraview_mesh.points[ cell ]:
-					print( "point: {}", point)
+			for mesh in meshes:
+				cell_is_in_grid = True
+				for point in paraview_mesh.points[ cell_point_id ][0]:
+					print( "point: ", point)
+					p0 = mesh.grid_option.x0
+					p1 = mesh.grid_option.x1
 
-				#if (  )
+					print( "p0", p0 )
+					print( "p1", p1 )
+					# Is cell in current mesh?
+					if (not ( min( p0[0], p1[0])-COMPARE_EPS <= point[0] <= max(p0[0], p1[0])+COMPARE_EPS and min( p0[1], p1[1])-COMPARE_EPS <= point[1] <= max(p0[1], p1[1])+COMPARE_EPS and min( p0[2], p1[2])-COMPARE_EPS <= point[2] <= max(p0[2], p1[2])+COMPARE_EPS ) ):
+						#print( "The point is not in the rectangle:\n    Point: {}\n    p0: {}\n    p1:{} ".format(point, p0, p1) )
+						#print( "p0", p0 )
+						#print( "p1", p1 )
+						cell_is_in_grid = False
+						break
+			
 
 				if cell_is_in_grid == True:
-					break
+					print( "The cell is in the rectangle:\n    Cell: {}\n    p0: {}\n    p1:{} ".format(paraview_mesh.points[ cell_point_list ][:], p0, p1) )
+					for point in paraview_mesh.points[ cell_point_id ]:
+						tmp = np.add(tmp, point )
+					tmp /= len(paraview_mesh.points[ cell_point_id ])
+					#print( "Mid point", tmp)
+					mesh.points.append( tmp )
+					mesh.global_to_mesh_id.append( idx )
+					#break
 
-			for point in paraview_mesh.points[ cell ]:
-		#print( dataset[0] )
-			#print( cell )
-				#print( point )
-				#print( paraview_mesh.points[ cell ] )
-				#print( paraview_mesh.points[ point_id ] )
-				tmp = np.add(tmp, point )
-		vis_points[idx] = tmp / len(paraview_mesh.points[ cell ])
+			#global_to_mesh_id
+			#vis_points[idx] = tmp / len(paraview_mesh.points[ cell_point_id ])
 	
+	sum_of_points = 0
 	for mesh in meshes:
-		mesh.points = np.array( points )
+		print( mesh )
+		sum_of_points += len(mesh.points)
+	print( "Total number of points: ", sum_of_points)
+	#	mesh.points = np.array( points )
 	#print( vis_points )
 
 	return DumuxMesh( vis_points )
