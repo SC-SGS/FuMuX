@@ -4,7 +4,8 @@ The python script reads in DuMuX output files (in Paraview's VTU format) and tra
 
 ## Important notes
 
-- One needs appropriate Paraview output from DuMuX, i.e. a `pvd`-file and the corresponding `vtu`-files that contain the solution data. I placed the data in the directories `case1/` and `case2/`.
+- One needs appropriate Paraview output from DuMuX, i.e. a `pvd`-file and the corresponding `vtu`-files that contain the solution data. I placed the data in the subdirectories `case1/` and `case2/`.
+- The subdirectories `case1/` and `case2/` contain a appropriate `precice-config.xml` for the corresponding test case.
 - There are scripts for two test cases
     - `case1`: **Single fracture** case residing in the branch `case1-precice-v1.X`.
         - One may start the `fumux` solver as: 
