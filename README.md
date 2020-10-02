@@ -5,7 +5,16 @@ The python script reads in DuMuX output files (in Paraview's VTU format) and tra
 ## Important notes
 
 - There are scripts for two test cases
-    - `case1`: Single fracture case residing in the branch `case1-precice-v1.X`
+    - `case1`: Single fracture case residing in the branch `case1-precice-v1.X`.
         - One may start the `fumux` solver as: `python3 fumux.py case1/case1_single_tracer_fracture.pvd case1/precice-config.xml` for example.
-    - `case2`: Test case containing 9 fractures. Data is transferred and received seperately on these 9 meshes.
+    - `case2`: Test case containing 9 fractures. Data is transferred and received seperately on these 9 meshes. The code is in the branch `case2-precice-v1.X`.
 - The script has been tested with preCICE v1.6.X. Newer releases of preCICE (v2.X.X) are using a new API. If that is needed for testing, please let me know and I will update the scripts!
+
+## Dependencies
+
+- `preCICE` 1.6.X including preCICE python bindings `precice_future`
+- Python 3
+- Several Python 3 packages
+    - `numpy`
+    - `meshio`
+    - `xml`
