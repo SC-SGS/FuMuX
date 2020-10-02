@@ -2,11 +2,11 @@
 
 import argparse, logging, math, os
 import numpy as np
-import shutil
+#import shutil
 #from ctypes import *
 #import mesh_io
 import meshio #dependency for easy reading of vtu files
-import json
+#import json
 import precice_future as precice
 import xml.etree.ElementTree as ET #dependency to parse ParaView pvd file 
 import collections
@@ -20,6 +20,21 @@ Run the script with
 TIME_EPS = 1e-10
 SLEEP_TIME = 0.5
 DataSet = collections.namedtuple("DataSet", [ "t", "path" ])
+
+GridOptions = collections.namedtuple('GridOptions', 'id, x0, x1' )
+
+
+gridOptions = [
+	GridOptions( id=0, x0= np.array( [0.500, 0.000, 0.000]), x1= np.array( [0.500, 1.000, 1.000] ) ),
+    GridOptions( id=1, x0= np.array( [0.000, 0.500, 0.000]), x1= np.array( [1.000, 0.500, 1.000] ) ),
+    GridOptions( id=2, x0= np.array( [0.000, 0.000, 0.500]), x1= np.array( [1.000, 1.000, 0.500] ) ),    
+    GridOptions( id=3, x0= np.array( [0.750, 0.500, 0.500]), x1= np.array( [0.750, 1.000, 1.000] ) ),
+    GridOptions( id=5, x0= np.array( [0.500, 0.750, 0.500]), x1= np.array( [1.000, 0.750, 1.000] ) ), 
+    GridOptions( id=4, x0= np.array( [0.500, 0.500, 0.750]), x1= np.array( [1.000, 1.000, 0.750] ) ),    
+    GridOptions( id=7, x0= np.array( [0.625, 0.500, 0.500]), x1= np.array( [0.625, 0.750, 0.750] ) ),
+    GridOptions( id=6, x0= np.array( [0.500, 0.625, 0.500]), x1= np.array( [0.750, 0.625, 0.750] ) ),
+    GridOptions( id=8, x0= np.array( [0.500, 0.500, 0.625]), x1= np.array( [0.750, 0.750, 0.625] ) ),
+	]
 
 class Mesh:
 	"""
@@ -46,12 +61,15 @@ class Mesh:
 			self.pointdata = []
 
 		def __str__(self):
-			return "Mesh with {} Points and {} Cells ({} Cell Types)".format(len(self.points), len(self.cells), len(self.cell_types))
+			return "Meis_in_gridsh with {} Points and {} Cells ({} Cell Types)".format(len(self.points), len(self.cells), len(self.cell_types))
 
 class DumuxMesh:
 	"""
 	"""
-	def __init__(self, points = None ):
+	def __init__(self, grid_option, points = None ):
+
+		self.grid_option = grid_option
+		self.gridDimensions = -1
 
 
 		if points is not None:
@@ -62,7 +80,6 @@ class DumuxMesh:
 		self.vertex_ids = []
 
 		self.mesh_id = -1
-
 		self.mesh_name = "unnamed"
 
 	def __str__(self):
@@ -81,6 +98,7 @@ class DumuxMesh:
 
 def create_file_list( path_to_pvd ):
 	base_path = path_to_pvd.rsplit("/", maxsplit=1)[0]
+
 	if ( base_path == path_to_pvd ):
 		base_path = ""
 	else:
@@ -101,17 +119,35 @@ def create_file_list( path_to_pvd ):
 	return file_list
 
 
-def extract_mesh( file_list, cell_type = "quad" ):
+def extract_meshes( file_list, cell_type = "quad" ):
 
-	print( "Extracting mesh from first vtu file!")
+	print( "Extracting meshes from first vtu file: {}".format(file_list[0].path) )
 
 	paraview_mesh = meshio.read( file_list[0].path )
 	print( paraview_mesh )
  
-	vis_points = np.zeros(( len(paraview_mesh.cells[cell_type]), 3)) 
-	for idx, point_list in zip( range(0, len(vis_points)), paraview_mesh.cells[cell_type] ):
+	#vis_points = np.zeros(( len(paraview_mesh.cells[cell_type]), 3)) 
+
+	meshes = []
+	for grid_option in gridOptions:
+		meshes.append( DumuxMesh( grid_option ) )
+	print( meshes )
+
+	for cell_list in paraview_mesh.cells[cell_type]:
 		tmp = np.zeros((1,3))
-		for cell in point_list:
+		for cell in cell_list:
+
+			# Check if all points of cell are on surface
+			for grid in gridOptions:
+				cell_is_in_grid = True 
+				for point in paraview_mesh.points[ cell ]:
+					print( "point: {}", point)
+
+				#if (  )
+
+				if cell_is_in_grid == True:
+					break
+
 			for point in paraview_mesh.points[ cell ]:
 		#print( dataset[0] )
 			#print( cell )
@@ -119,9 +155,11 @@ def extract_mesh( file_list, cell_type = "quad" ):
 				#print( paraview_mesh.points[ cell ] )
 				#print( paraview_mesh.points[ point_id ] )
 				tmp = np.add(tmp, point )
-		vis_points[idx] = tmp / 4.
+		vis_points[idx] = tmp / len(paraview_mesh.points[ cell ])
 	
-	print( vis_points )
+	for mesh in meshes:
+		mesh.points = np.array( points )
+	#print( vis_points )
 
 	return DumuxMesh( vis_points )
 
@@ -145,7 +183,7 @@ def main():
 	args = parse_args()
 	vtu_file_list = create_file_list( args.pvd_filename )
 	print( vtu_file_list )
-	my_mesh = extract_mesh( vtu_file_list )
+	my_mesh = extract_meshes( vtu_file_list, "triangle" )
 	my_mesh.mesh_name = "DumuxMesh"
 	print( my_mesh )
 
