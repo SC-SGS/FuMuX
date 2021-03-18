@@ -29,3 +29,7 @@ The python script reads in DuMuX output files (in Paraview's VTU format) and tra
     - `meshio`
     - `xml`
 - [inpreCICE](https://github.com/SteScheller/inpreCICE/) is not a direct dependency for running FuMuX, but nothing will happen/FuMuX will hang if the visualization tool is not running at the same time.
+
+## License
+
+This work is licensed under the [GPLv3](./LICENSE).
