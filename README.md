@@ -7,8 +7,7 @@ Currently supported data sets originate from the publication *Verification bench
 ## Important notes / How to
 
 - One needs appropriate Paraview output from DuMuX, i.e. a `pvd`-file and the corresponding `vtu`-files that contain the solution data. I recommend to place the data in the subdirectories `case1/` and `case2/`.
-- Datasets for case 1  (`case1-data.tar.gz `) and case 2 (`case2-data.tar.gz `) can be found on the DaRUS of the University of Stuttgart: [https://doi.org/10.18419/darus-1773](https://doi.org/10.18419/darus-1773)
-- Unpack the data set into the corresponding subdirectory `case1/` and `case2/`. The directories already contain a appropriate `precice-config.xml` for the corresponding test case.
+- Put the data set into the corresponding subdirectory `case1/` and `case2/`. The directories already contain a appropriate `precice-config.xml` for the corresponding test case.
 - There are scripts for two test cases residing in *branches*. Currently, full functionality for the two supported cases is **only** provided by these branches:
     - `case1`: **Single fracture** case residing in the branch `case1-precice-v1.X`.
         - One may start the `fumux` solver as:
